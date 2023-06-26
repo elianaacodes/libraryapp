@@ -1,14 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-import uuid 
+from uuid import uuid4
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin
-from flask_login import LoginManager
-from flask_marshmallow import Marshmallow 
+from flask_login import UserMixin, LoginManager
+from flask_marshmallow import Marshmallow
 import secrets
 
-# set variables for class instantiation
 login_manager = LoginManager()
 ma = Marshmallow()
 db = SQLAlchemy()
@@ -17,65 +15,149 @@ db = SQLAlchemy()
 def load_user(user_id):
     return User.query.get(user_id)
 
-
 class User(db.Model, UserMixin):
     id = db.Column(db.String, primary_key=True)
-    first_name = db.Column(db.String(150), nullable=True, default='')
-    last_name = db.Column(db.String(150), nullable = True, default = '')
-    email = db.Column(db.String(150), nullable = False)
-    password = db.Column(db.String, nullable = True, default = '')
-    g_auth_verify = db.Column(db.Boolean, default = False)
-    token = db.Column(db.String, default = '', unique = True )
-    date_created = db.Column(db.DateTime, nullable = False, default = datetime.utcnow)
+    first_name = db.Column(db.String(50), nullable=True, default="")
+    last_name = db.Column(db.String(50), nullable=True, default="")
+    email = db.Column(db.String(50), nullable=False)
+    password = db.Column(db.String, nullable=True, default="")
+    g_auth_verify = db.Column(db.Boolean, default=False)
+    user_token = db.Column(db.String, default="", unique=True)
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    def __init__(self, email, first_name='', last_name='', password='', token='', g_auth_verify=False):
+    
+    def __init__(self, email, first_name='', last_name='', password='', user_token='', g_auth_verify=False):
         self.id = self.set_id()
+        self.email = email
         self.first_name = first_name
         self.last_name = last_name
         self.password = self.set_password(password)
-        self.email = email
-        self.token = self.set_token(24)
+        self.user_token = self.set_token(24)
         self.g_auth_verify = g_auth_verify
-
-    def set_token(self, length):
-        return secrets.token_hex(length)
-
+        
     def set_id(self):
-        return str(uuid.uuid4())
+        return str(uuid4())
     
     def set_password(self, password):
         self.pw_hash = generate_password_hash(password)
         return self.pw_hash
-
-    def __repr__(self):
-        return f'User {self.email} has been added to the database'
     
-class Contact(db.Model):
-    id = db.Column(db.String, primary_key = True)
-    name = db.Column(db.String(150), nullable = False)
-    email = db.Column(db.String(200))
-    phone_number = db.Column(db.String(20))
-    address = db.Column(db.String(200))
-    user_token = db.Column(db.String, db.ForeignKey('user.token'), nullable = False)
-
-    def __init__(self,name,email,phone_number,address,user_token, id = ''):
-        self.id = self.set_id()
-        self.name = name
-        self.email = email
-        self.phone_number = phone_number
-        self.address = address
-        self.user_token = user_token
-
-
+    def set_token(self, length):
+        return secrets.token_hex(length)
+    
     def __repr__(self):
-        return f'The following contact has been added to the phonebook: {self.name}'
-
+        return f"User {self.email} has been added to the database"
+    
+class Library(db.Model):
+    library_id = db.Column(db.String, primary_key=True)
+    library_name = db.Column(db.String(75), nullable=False)
+    library_email = db.Column(db.String(50), nullable=False)
+    library_password = db.Column(db.String, nullable=True, default='')
+    library_address = db.Column(db.String(50), nullable=False)
+    library_city = db.Column(db.String(50), nullable=False)
+    library_state = db.Column(db.String(30), nullable=False)
+    g_auth_verify = db.Column(db.Boolean, default=False)
+    library_token = db.Column(db.String, default='', unique=True)
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    def __init__(self, library_name, library_email, library_address, library_city, library_state, library_password='', library_token='', g_auth_verify=False):
+        self.library_id = self.set_id()
+        self.library_name = library_name
+        self.library_email = library_email
+        self.library_password = self.set_password(library_password)
+        self.library_address = library_address
+        self.library_city = library_city
+        self.library_state = library_state
+        self.library_token = self.set_token(24)
+        self.g_auth_verify = g_auth_verify
+        
     def set_id(self):
-        return (secrets.token_urlsafe())
+        return str(uuid4())
+    
+    def set_password(self, password):
+        self.pw_hash = generate_password_hash(password)
+        return self.pw_hash
+    
+    def set_token(self, length):
+        return secrets.token_hex(length)
+    
+    def __repr__(self):
+        return f"Library {self.library_name} has been added to the database"
+        
 
-class ContactSchema(ma.Schema):
+class Book(db.Model):
+    book_id = db.Column(db.String, primary_key=True)
+    book_title = db.Column(db.String(100), nullable=False)
+    isbn = db.Column(db.Integer, nullable=False)
+    pages = db.Column(db.Integer, nullable=True)
+    genre = db.Column(db.String(20), nullable=True)
+    author = db.Column(db.String, nullable=True)
+    in_stock = db.Column(db.Boolean, default=True)
+    library_token = db.Column(db.String, db.ForeignKey('library.library_token'), nullable=False)
+    user_id = db.Column(db.String, nullable=True)
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    def __init__(self, book_title, isbn, pages, genre, author, library_token, in_stock=True, user_id=''):
+        self.book_id = self.set_id()
+        self.book_title = book_title
+        self.isbn = isbn
+        self.pages = pages
+        self.genre = genre
+        self.author = author
+        self.in_stock = in_stock
+        self.library_token = library_token
+        self.userid = user_id
+    
+    def set_id(self):
+        return str(uuid4())
+    
+    def __repr__(self):
+        return f"Book {self.book_title} has been added to the database"
+    
+
+class Transaction(db.Model):
+    transaction_id = db.Column(db.String, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('user.id'), nullable = False)
+    book_id = db.Column(db.String, db.ForeignKey('book.book_id'), nullable = False)
+    library_id = db.Column(db.String, db.ForeignKey('library.library_id'), nullable = False)
+    user_token = db.Column(db.String, db.ForeignKey('user.user_token'), nullable=False)
+    checking_out = db.Column(db.Boolean, nullable=True)
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    def __init__(self, user_id, book_id, library_id, user_token, checking_out):
+        self.transaction_id = self.set_id()
+        self.user_id = user_id
+        self.book_id = book_id
+        self.library_id = library_id
+        self.user_token = user_token
+        self.checking_out = checking_out
+        
+    def set_id(self):
+        return str(uuid4())
+    
+    def __repr__(self):
+        return f"Transaction {self.transaction_id} has been added to the database"
+
+class LibrarySchema(ma.Schema):
     class Meta:
-        fields = ['id', 'name','email','phone_number', 'address']
+        fields = ['library_id', 'library_name', 'library_email', 'library_address', 'library_city', 'library_state']
 
-contact_schema = ContactSchema()
-contacts_schema = ContactSchema(many=True)
+class FullLibrarySchema(ma.Schema):
+    class Meta:
+        fields = ['library_id', 'library_name', 'library_email', 'library_address', 'library_city', 'library_state', 'library_token']
+
+class BookSchema(ma.Schema):
+    class Meta:
+        fields = ['book_id', 'book_title', 'isbn', 'pages', 'language', 'genre', 'author', 'in_stock']
+
+        
+class LoginSchema(ma.Schema):
+    class Meta:
+        fields = ['id', 'email', 'first_name', 'last_name', 'user_token']
+
+full_library_schema = FullLibrarySchema()
+libraries_schema = FullLibrarySchema(many=True)
+library_schema = LibrarySchema()
+book_schema = BookSchema()
+books_schema = BookSchema(many=True)
+login_schema = LoginSchema()
